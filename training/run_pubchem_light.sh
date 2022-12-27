@@ -1,0 +1,25 @@
+python train_pubchem_light.py \
+        --device cuda \
+        --n_batch 1200  \
+        --n_head 12 \
+        --n_layer 12 \
+        --n_embd 768 \
+        --max_len 202 \
+        --d_dropout 0.2 \
+        --lr_start 3e-5 \
+        --lr_multiplier 8 \
+        --n_workers 8 \
+        --max_epochs 4 \
+        --gpu -1 \
+        --num_nodes 1 \
+        --accelerator ddp \
+        --num_feats 32 \
+        --root_dir . \
+        --checkpoint_every 1000 \
+        --grad_acc 1\
+        --train_load 'both' \
+        --eval_every 1000 \
+        --rotate \
+        --debug \
+        --model_arch 'BERT__both_rotate' \
+        | tee $HOSTNAME.$LSF_PM_XPROCID.$(date +%F_%R).8.log

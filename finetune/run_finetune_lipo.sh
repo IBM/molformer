@@ -1,0 +1,18 @@
+python finetune_pubchem_light.py \
+        --device cuda \
+        --batch_size 128  \
+        --n_head 12 \
+        --n_layer 12 \
+        --n_embd 768 \
+        --d_dropout 0.1 \
+        --dropout 0.1 \
+        --lr_start 3e-5 \
+        --num_workers 8\
+        --max_epochs 500 \
+        --num_feats 32 \
+        --seed_path '../data/checkpoints/linear_model.ckpt' \
+        --dataset_name lipo \
+        --data_root ../data/lipo \
+        --measure_name y \
+        --dims 768 768 768 1 \
+        --checkpoints_folder './checkpoints_lipo'\
