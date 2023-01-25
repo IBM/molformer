@@ -17,7 +17,8 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 
 from fast_transformers.builders import TransformerEncoderBuilder
 from fast_transformers.masking import LengthMask as LM
-from fast_trans_code.builders import TransformerEncoderBuilder as rotate_builder
+from rotate_attention.rotate_builder import RotateEncoderBuilder as rotate_builder
+#from fast_trans_code.builders import TransformerEncoderBuilder as rotate_builder
 from fast_transformers.feature_maps import Favor,GeneralizedRandomFeatures
 import torch.nn.functional as F
 from functools import partial

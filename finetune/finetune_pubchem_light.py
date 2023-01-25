@@ -11,7 +11,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only, seed
 from tokenizer.tokenizer import MolTranBertTokenizer
 from fast_transformers.masking import LengthMask as LM
-from fast_trans_code.builders import TransformerEncoderBuilder as rotate_builder
+from rotate_attention.rotate_builder import RotateEncoderBuilder as rotate_builder
 from fast_transformers.feature_maps import GeneralizedRandomFeatures
 from functools import partial
 from apex import optimizers

@@ -13,7 +13,10 @@ from datasets import load_dataset, concatenate_datasets, load_from_disk
 
 from fast_transformers.builders import TransformerEncoderBuilder
 from fast_transformers.masking import FullMask, LengthMask as LM
-from fast_trans_code.builders import TransformerEncoderBuilder as rotate_builder
+from rotate_attention.rotate_builder import RotateEncoderBuilder as rotate_builder
+import fast_transformers.attention.linear_attention
+import rotate_attention.linear_attention
+
 from fast_transformers.feature_maps import Favor, GeneralizedRandomFeatures
 from functools import partial
 
@@ -57,7 +60,7 @@ class TestBert(nn.Module):
                 query_dimensions=config.n_embd // config.n_head,
                 value_dimensions=config.n_embd // config.n_head,
                 feed_forward_dimensions=config.n_embd,
-                attention_type="linear",
+                attention_type="linearwweights",
                 feature_map=partial(
                     GeneralizedRandomFeatures,
                     n_dims=config.num_feats,
@@ -73,8 +76,8 @@ class TestBert(nn.Module):
                 query_dimensions=config.n_embd // config.n_head,
                 value_dimensions=config.n_embd // config.n_head,
                 feed_forward_dimensions=config.n_embd,
-                attention_type="full",
-                # feature_map=partial(GeneralizedRandomFeatures, n_dims=config.num_feats, deterministic_eval=True),
+                attention_type="linearwweights",
+                feature_map=partial(GeneralizedRandomFeatures, n_dims=config.num_feats, deterministic_eval=True),
                 activation="gelu",
             )
             pos_emb = nn.Parameter(torch.zeros(1, block_size, config.n_embd))
