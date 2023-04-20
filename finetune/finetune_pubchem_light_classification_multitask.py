@@ -242,6 +242,7 @@ class MultitaskModel(pl.LightningModule):
         token_embeddings =self.tok_emb(idx)
         x = self.drop(token_embeddings)
         x = self.blocks(x, length_mask=LM(mask.sum(-1)))
+        token_embeddings = x
         input_mask_expanded = mask.unsqueeze(-1).expand(token_embeddings.size()).float()
         sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
         sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
@@ -269,7 +270,7 @@ class MultitaskModel(pl.LightningModule):
         token_embeddings = self.tok_emb(idx) # each index maps to a (learnable) vector
         x = self.drop(token_embeddings)
         x = self.blocks(x, length_mask=LM(mask.sum(-1)))
-            #input_mask_expanded = mask._mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+        token_embeddings = x
         input_mask_expanded = mask.unsqueeze(-1).expand(token_embeddings.size()).float()
         sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
         sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
