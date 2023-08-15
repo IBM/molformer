@@ -13,13 +13,14 @@ An overview of the MoLFormer pipeline is seen in the image above. One can see th
 1. [Getting Started](#getting-started)
     1. [Pretrained Models and training logs](#pretrained-models-and-training-logs)
     2. [Replicating Conda Environment](#replicating-conda-environment)
-3. [Data](#data)
-    1. [PreTraining Datasets](#pretraining-datasets)
+2. [Data](#data)
+    1. [Pretraining Datasets](#pretraining-datasets)
     2. [Finetuning Datasets](#finetuning-datasets)
-5. [PreTraining](#pretraining)
-6. [FineTuning](#finetuning)
-7. [Attention Visualization Analysis](#attention-visualization-analysis)
-8. [Citations](#citatiobs)
+3. [Pretraining](#pretraining)
+4. [Finetuning](#finetuning)
+5. [Feature extraction](#feature-extraction)
+6. [Attention Visualization Analysis](#attention-visualization-analysis)
+7. [Citations](#citatiobs)
 
 
 ## Getting Started
@@ -27,13 +28,24 @@ An overview of the MoLFormer pipeline is seen in the image above. One can see th
 **This Code and Environment have been tested on Nvidia V100s**
 
 #### Pretrained Models and training logs
-If Training from scratch the resulting Pretrained models and associated training logs will be located in the /data directory in the following hierarchy. 
+If Training from scratch the resulting Pretrained models and associated training logs will be located in the /data directory in the following hierarchy.
 
 ```
 data/
+├── Pretrained MoLFormer
+│   ├── checkpoints
+│   │   ├── N-Step-Checkpoint_0_0.ckpt
+│   │   ├── N-Step-Checkpoint_0_5000.ckpt
+│   │   ├── N-Step-Checkpoint_1_10000.ckpt
+│   │   ├── N-Step-Checkpoint_1_15000.ckpt
+│   │   ├── N-Step-Checkpoint_2_20000.ckpt
+│   │   ├── N-Step-Checkpoint_3_25000.ckpt
+│   │   └── N-Step-Checkpoint_3_30000.ckpt
+│   ├── events.out.tfevents.1643396916.cccxc543.3427421.0
+│   └── hparams.yaml
 ├── checkpoints
-|   └── linear_model.ckpt
-|   └── full_model.ckpt
+│   ├── linear_model.ckpt
+│   └── full_model.ckpt
 ├── Full_Attention_Rotary_Training_Logs
 │   ├── events.out.tfevents.1628698179.cccxc544.604661.0
 │   └── hparams.yaml
@@ -42,9 +54,9 @@ data/
     └── hparams.yaml
 ```
 
-We are providing checkpoints of a MoLFormer model pre-trained on a dataset of ~100M molecules. This dataset combines 10% of Zinc and 10% of PubChem molecules used for MoLFormer-XL training. The accompanying pre-trained model shows competitive performance on classification and regression benchmarks from MoleculeNet. (see Extended data Tables 1-2 in [https://arxiv.org/abs/2106.09553](https://arxiv.org/abs/2106.09553)). These checkpoints are available at (https://ibm.box.com/v/MoLFormer-data](https://ibm.box.com/v/MoLFormer-data)
+We are providing checkpoints of a MoLFormer model pre-trained on a dataset of ~100M molecules. This dataset combines 10% of Zinc and 10% of PubChem molecules used for MoLFormer-XL training. The accompanying pre-trained model shows competitive performance on classification and regression benchmarks from MoleculeNet. (see Extended data Tables 1-2 in [https://arxiv.org/abs/2106.09553](https://arxiv.org/abs/2106.09553)). These checkpoints are available at [https://ibm.box.com/v/MoLFormer-data](https://ibm.box.com/v/MoLFormer-data)
 
-#### Replicating Conda Environment 
+#### Replicating Conda Environment
 
 Due to the use of apex.optimizers in our code, Apex must be compiled from source. Step-by-step directions are provided in [environment.md](environment.md)
 
@@ -53,11 +65,11 @@ Due to the use of apex.optimizers in our code, Apex must be compiled from source
 Datasets are available at [https://ibm.box.com/v/MoLFormer-data](https://ibm.box.com/v/MoLFormer-data)
 
 ### PreTraining Datasets
-Due to the large nature of the combination of the PubChem and Zinc (over 1.1 billion molecules in total) datasets the code expects the data to be in a certain location and format.  The details of the of this processing is documented below for each individaul dataset. 
+Due to the large nature of the combination of the PubChem and Zinc (over 1.1 billion molecules in total) datasets the code expects the data to be in a certain location and format.  The details of the of this processing is documented below for each individaul dataset.
 
-The code expects both the zinc15(ZINC) and pubchem datasets to be located in ```./data/``` directory of the training diretory. 
+The code expects both the zinc15(ZINC) and pubchem datasets to be located in ```./data/``` directory of the training diretory.
   * Zinc15 itself should be in located ```data/ZINC/``` and is expected to be processed in multiple smi files which contains one smiles string per line.
-  * PubChem should be located in ```data/pubchem/``` and is expected to be processed as a single “CID-SMILES” text file with 2 columns (index and smiles string).  We took the raw Pubchem dataset and converted every smiles molecule into the canonical form, utilizing rdkit, as well as trimmed down the file itself. Our dataloader expects Pubchem to be in our converted form and will not run on the raw pubchem file. 
+  * PubChem should be located in ```data/pubchem/``` and is expected to be processed as a single “CID-SMILES” text file with 2 columns (index and smiles string).  We took the raw Pubchem dataset and converted every smiles molecule into the canonical form, utilizing rdkit, as well as trimmed down the file itself. Our dataloader expects Pubchem to be in our converted form and will not run on the raw pubchem file.
 
 ```
 data/
@@ -153,7 +165,7 @@ During pre-processing, the compounds are filtered to keep a maximum length of 21
 
 The pre-training code provides an example of data processing and training of a model trained on a smaller pre-training dataset size, which requires 16 v100 GPUs. The remainder of this README contains an installation guide for this repo, descriptions and links to pre-training and fine-tuning datasets, configuration files and python codes for model pre-training and fine-tuning, and jupyter notebook for attention map visualization and analysis for a given molecule. A MoLFormer instance pre-trained on xxx data is also provided.
 
-To train a model run: 
+To train a model run:
 
 > bash run_pubchem_light.sh
 
@@ -165,6 +177,12 @@ The finetuning related dataset and environment can be found in [finetuning datas
 
 Finetuning training/checkpointing resources will be available in the diretory named ```checkpoint_<measure_name>```. The path to the results csv will be in the form of ```./checkpoint_<measure_name>/<measure_name>/results/results_.csv``` The ```results_.csv``` file contains 4 columns of data. Column one contains the validation score for each epoch while column 2 contains the test score for each epoch. Column 3 contains the best validation score observed up to that point of fine tuning while column 4 is the test score of the epoch which had the best validation score.
 
+## Feature Extraction
+
+The notebook [frozen_embeddings_classification.ipynb](notebooks/pretrained_molformer/frozen_embeddings_classification.ipynb) contains code needed to load the [checkpoint files](https://ibm.box.com/v/MoLFormer-data) and use the pre-trained model as a feature extractor for a simple classification task.
+
+Download the `Pretrained MoLFormer.zip` and `finetune_datasets.zip` and extract them to the `data/` folder. Follow the instructions in [environment.md](environment.md) to install all dependencies and then run the notebook.
+
 ## Attention Visualization Analysis
 
 The `notebooks` directory provide attention visualization for two setup with Rotary Embeddings:
@@ -175,15 +193,15 @@ The checkpoints required for the above models are to be placed in `./data/checkp
 
 ## Citations
 ```
-@article{10.1038/s42256-022-00580-7, 
-year = {2022}, 
-title = {{Large-scale chemical language representations capture molecular structure and properties}}, 
-author = {Ross, Jerret and Belgodere, Brian and Chenthamarakshan, Vijil and Padhi, Inkit and Mroueh, Youssef and Das, Payel}, 
-journal = {Nature Machine Intelligence}, 
-doi = {10.1038/s42256-022-00580-7}, 
-abstract = {{Models based on machine learning can enable accurate and fast molecular property predictions, which is of interest in drug discovery and material design. Various supervised machine learning models have demonstrated promising performance, but the vast chemical space and the limited availability of property labels make supervised learning challenging. Recently, unsupervised transformer-based language models pretrained on a large unlabelled corpus have produced state-of-the-art results in many downstream natural language processing tasks. Inspired by this development, we present molecular embeddings obtained by training an efficient transformer encoder model, MoLFormer, which uses rotary positional embeddings. This model employs a linear attention mechanism, coupled with highly distributed training, on SMILES sequences of 1.1 billion unlabelled molecules from the PubChem and ZINC datasets. We show that the learned molecular representation outperforms existing baselines, including supervised and self-supervised graph neural networks and language models, on several downstream tasks from ten benchmark datasets. They perform competitively on two others. Further analyses, specifically through the lens of attention, demonstrate that MoLFormer trained on chemical SMILES indeed learns the spatial relationships between atoms within a molecule. These results provide encouraging evidence that large-scale molecular language models can capture sufficient chemical and structural information to predict various distinct molecular properties, including quantum-chemical properties. Large language models have recently emerged with extraordinary capabilities, and these methods can be applied to model other kinds of sequence, such as string representations of molecules. Ross and colleagues have created a transformer-based model, trained on a large dataset of molecules, which provides good results on property prediction tasks.}}, 
-pages = {1256--1264}, 
-number = {12}, 
+@article{10.1038/s42256-022-00580-7,
+year = {2022},
+title = {{Large-scale chemical language representations capture molecular structure and properties}},
+author = {Ross, Jerret and Belgodere, Brian and Chenthamarakshan, Vijil and Padhi, Inkit and Mroueh, Youssef and Das, Payel},
+journal = {Nature Machine Intelligence},
+doi = {10.1038/s42256-022-00580-7},
+abstract = {{Models based on machine learning can enable accurate and fast molecular property predictions, which is of interest in drug discovery and material design. Various supervised machine learning models have demonstrated promising performance, but the vast chemical space and the limited availability of property labels make supervised learning challenging. Recently, unsupervised transformer-based language models pretrained on a large unlabelled corpus have produced state-of-the-art results in many downstream natural language processing tasks. Inspired by this development, we present molecular embeddings obtained by training an efficient transformer encoder model, MoLFormer, which uses rotary positional embeddings. This model employs a linear attention mechanism, coupled with highly distributed training, on SMILES sequences of 1.1 billion unlabelled molecules from the PubChem and ZINC datasets. We show that the learned molecular representation outperforms existing baselines, including supervised and self-supervised graph neural networks and language models, on several downstream tasks from ten benchmark datasets. They perform competitively on two others. Further analyses, specifically through the lens of attention, demonstrate that MoLFormer trained on chemical SMILES indeed learns the spatial relationships between atoms within a molecule. These results provide encouraging evidence that large-scale molecular language models can capture sufficient chemical and structural information to predict various distinct molecular properties, including quantum-chemical properties. Large language models have recently emerged with extraordinary capabilities, and these methods can be applied to model other kinds of sequence, such as string representations of molecules. Ross and colleagues have created a transformer-based model, trained on a large dataset of molecules, which provides good results on property prediction tasks.}},
+pages = {1256--1264},
+number = {12},
 volume = {4}
 }
 ```

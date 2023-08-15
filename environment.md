@@ -1,4 +1,4 @@
-# Python Environment 
+# Python Environment
 
 ## Conda Create and Activate Environment
 
@@ -10,7 +10,8 @@ conda activate MolTran_CUDA11
 ## Conda Install Packages
 ```
 conda install pytorch==1.7.1 cudatoolkit=11.0 -c pytorch
-conda install rdkit==2021.03.2 pandas=1.2.4 scikit-learn=0.24.2 scipy=1.6.3 
+conda install numpy=1.22.3 pandas=1.2.4 scikit-learn=0.24.2 scipy=1.6.2
+conda install rdkit==2022.03.2 -c conda-forge
 ```
 
 ## Pip install Packages
@@ -26,6 +27,7 @@ Due to the use of [Apex Optimizers](https://nvidia.github.io/apex/optimizers.htm
 ```
 git clone https://github.com/NVIDIA/apex
 cd apex
+git checkout tags/22.03 -b v22.03
 export CUDA_HOME='Cuda 11 install'
-pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./
 ```
