@@ -6,9 +6,7 @@ from pubchem_encoder import Encoder
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import seed
 
-from rotate_attention.rotate_builder import RotateEncoderBuilder as rotate_builder
-
-from fast_transformers.feature_maps import GeneralizedRandomFeatures
+from fast_transformers.builders import TransformerEncoderBuilder
 import torch.nn.functional as F
 from functools import partial
 from apex import optimizers
@@ -43,15 +41,13 @@ class LightningModule(pl.LightningModule):
         # Word embeddings layer
         n_vocab = len(vocab.keys())
         # input embedding stem
-        builder = rotate_builder.from_kwargs(
+        builder = TransformerEncoderBuilder.from_kwargs(  # simple full attention
             n_layers=config.n_layer,
             n_heads=config.n_head,
             query_dimensions=config.n_embd // config.n_head,
             value_dimensions=config.n_embd // config.n_head,
             feed_forward_dimensions=config.n_embd,
-            attention_type="linear",
-            # attention_type='full',
-            feature_map=partial(GeneralizedRandomFeatures, n_dims=config.num_feats),
+            attention_type="fullwweights",
             activation="gelu",
         )
         self.pos_emb = None
@@ -68,7 +64,6 @@ class LightningModule(pl.LightningModule):
     def lm_forward(self, batch, mask=None, mode="cls"):
         b, t = batch.size()
 
-        # forward the GPT model
         token_embeddings = self.tok_emb(
             batch
         )  # each index maps to a (learnable) vector
