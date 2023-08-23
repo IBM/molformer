@@ -25,7 +25,6 @@ class TestBert(nn.Module):
     def __init__(
         self, vocab, model_path=None, extend_pos=False, rotate=False, device="cpu"
     ):
-        print(device)
         if model_path is None:
             assert False
         super().__init__()
