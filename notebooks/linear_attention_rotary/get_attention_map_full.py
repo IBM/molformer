@@ -9,15 +9,13 @@ from torch import nn
 import args
 import os
 import getpass
-from datasets import load_dataset, concatenate_datasets, load_from_disk
+from datasets import load_dataset
 
 from fast_transformers.builders import TransformerEncoderBuilder
 from fast_transformers.masking import FullMask, LengthMask as LM
 from rotate_attention.rotate_builder import RotateEncoderBuilder as rotate_builder
-import fast_transformers.attention.linear_attention
-import rotate_attention.linear_attention
 
-from fast_transformers.feature_maps import Favor, GeneralizedRandomFeatures
+from fast_transformers.feature_maps import GeneralizedRandomFeatures
 from functools import partial
 
 from torch.utils.data import DataLoader
@@ -27,7 +25,8 @@ class TestBert(nn.Module):
     def __init__(
         self, vocab, model_path=None, extend_pos=False, rotate=False, device="cpu"
     ):
-        if model_path == None:
+        print(device)
+        if model_path is None:
             assert False
         super().__init__()
         model = torch.load(model_path, map_location=torch.device(device))
@@ -50,7 +49,6 @@ class TestBert(nn.Module):
         self.drop = nn.Dropout(config.d_dropout)
 
     def create_model(self, config, vocab):
-
         n_vocab, d_emb = len(vocab.keys()), config.n_embd
         block_size = 250
         if config.rotate:
@@ -77,7 +75,11 @@ class TestBert(nn.Module):
                 value_dimensions=config.n_embd // config.n_head,
                 feed_forward_dimensions=config.n_embd,
                 attention_type="linearwweights",
-                feature_map=partial(GeneralizedRandomFeatures, n_dims=config.num_feats, deterministic_eval=True),
+                feature_map=partial(
+                    GeneralizedRandomFeatures,
+                    n_dims=config.num_feats,
+                    deterministic_eval=True,
+                ),
                 activation="gelu",
             )
             pos_emb = nn.Parameter(torch.zeros(1, block_size, config.n_embd))
@@ -86,7 +88,6 @@ class TestBert(nn.Module):
 
         blocks = builder.get()
         lang_model = lm_layer(config.n_embd, n_vocab)
-        train_config = config
         block_size = block_size
 
         return tok_emb, pos_emb, blocks, drop, lang_model
@@ -98,7 +99,7 @@ class TestBert(nn.Module):
         token_embeddings = self.tok_emb(
             batch
         )  # each index maps to a (learnable) vector
-        if self.pos_emb != None:
+        if self.pos_emb is not None:
             position_embeddings = self.pos_emb[
                 :, :t, :
             ]  # each position maps to a (learnable) vector
@@ -106,7 +107,7 @@ class TestBert(nn.Module):
         else:
             x = self.drop(token_embeddings)
 
-        if mask != None:
+        if mask is not None:
             x, attention_mask = self.blocks(x, length_mask=LM(mask._mask.sum(-1)))
 
         else:
@@ -125,7 +126,6 @@ class TestBert(nn.Module):
             max_over_time = torch.max(token_embeddings, 1)[0]
             return max_over_time, attention_mask
         elif mode == "avg":
-
             token_embeddings = x
             input_mask_expanded = (
                 mask._mask.unsqueeze(-1).expand(token_embeddings.size()).float()
@@ -204,7 +204,9 @@ def get_bert(config, tokenizer):
     bert_model = TestBert(
         tokenizer.vocab, config.seed_path, rotate=config.rotate, device=config.device
     ).to(config.device)
-    tmp_model = torch.load(config.seed_path)["state_dict"]
+    tmp_model = torch.load(config.seed_path, map_location=torch.device(config.device))[
+        "state_dict"
+    ]
     bert_model.load_state_dict(tmp_model, strict=True)
     bert_model = bert_model.eval()
     return bert_model
@@ -230,26 +232,13 @@ def get_tokens_from_ids(input_ids, tokenizer):
     return tokens
 
 
-def get_full_attention(molecule):
-    config = args.parse_args()
-    model_path = config.seed_path
-    device = config.device
-    batch_size = config.batch_size
-    canonical = config.canonical
-    mode = config.mode
-    mask = config.mask
-
+def get_full_attention(molecule, bert_model, config, tokenizer):
     loader = None
-    tokenizer = MolTranBertTokenizer("bert_vocab.txt")
-    bert_model = get_bert(config, tokenizer)
-
-    batch_total = 0
+    device = config.device
     if loader is not None:
-
         for batch_number, mols in enumerate(loader):
             batch_to_save = []
             with torch.no_grad():
-
                 # print(batch_number)
                 if config.canonical is True:
                     output = [
@@ -305,7 +294,6 @@ def get_full_attention(molecule):
 
     else:
         with torch.no_grad():
-
             if config.canonical is True:
                 output = [normalize_smiles(molecule, canonical=True, isomeric=False)]
             else:
@@ -340,10 +328,3 @@ def get_full_attention(molecule):
                 mode=config.mode,
             )
             return attention_mask, raw_tokens
-
-    if loader != None:
-        remove_tree(cache_files)
-
-
-if __name__ == "__main__":
-    attentions = get_full_attention()

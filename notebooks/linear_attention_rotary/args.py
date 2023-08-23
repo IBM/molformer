@@ -89,7 +89,7 @@ def get_parser(parser=None):
     parser.add_argument(
         "--device",
         type=str,
-        default="cuda",
+        default="cpu",
         help='Device to run: "cpu" or "cuda:<device number>"',
     )
     parser.add_argument("--seed", type=int, default=12345, help="Seed")
@@ -139,7 +139,7 @@ def get_parser(parser=None):
     parser.add_argument(
         "--seed_path",
         type=str,
-        default="../../data/checkpoints/linear_rotary.ckpt",
+        default="/Users/kevinmaikjablonka/Downloads/Pretrained MoLFormer/checkpoints/N-Step-Checkpoint_0_0.ckpt",
         help="path to  trainer file to continue training",
     )
     parser.add_argument(
