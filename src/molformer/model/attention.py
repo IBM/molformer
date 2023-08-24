@@ -1,6 +1,8 @@
 from math import sqrt
 from molformer.model.base_bert import LM_Layer
-from molformer.model.rotate_builder import RotateEncoderBuilder as rotate_builder
+from molformer.model.rotate_attention.rotate_builder import (
+    RotateEncoderBuilder as rotate_builder,
+)
 from fast_transformers.events import EventDispatcher, AttentionEvent
 from fast_transformers.attention_registry import (
     AttentionRegistry,

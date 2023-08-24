@@ -3,31 +3,44 @@ output projections leaving the implementation of the attention to the inner
 attention module.
 """
 
-from torch.nn import Linear, Module
 
 from fast_transformers.attention import AttentionLayer
-from fast_transformers.events import EventDispatcher, QKVEvent
+from fast_transformers.events import QKVEvent
 from .rotary import RotaryEmbedding, apply_rotary_pos_emb
 
+
 class RotateAttentionLayer(AttentionLayer):
-    """Rotate attention layer inherits from fast_transformer attention layer. 
-        The only thing added is an Embedding encoding, for more information
-        on the attention layer see the fast_transformers code
+    """Rotate attention layer inherits from fast_transformer attention layer.
+    The only thing added is an Embedding encoding, for more information
+    on the attention layer see the fast_transformers code
     """
-    def __init__(self, attention, d_model, n_heads, d_keys=None,
-                 d_values=None, event_dispatcher=""):
-        super(RotateAttentionLayer, self).__init__(attention,d_model, n_heads, d_keys=d_keys,
-                 d_values=d_values, event_dispatcher=event_dispatcher)
+
+    def __init__(
+        self,
+        attention,
+        d_model,
+        n_heads,
+        d_keys=None,
+        d_values=None,
+        event_dispatcher="",
+    ):
+        super(RotateAttentionLayer, self).__init__(
+            attention,
+            d_model,
+            n_heads,
+            d_keys=d_keys,
+            d_values=d_values,
+            event_dispatcher=event_dispatcher,
+        )
 
         self.rotaryemb = RotaryEmbedding(d_keys)
-        print('Using Rotation Embedding')
+        print("Using Rotation Embedding")
 
-    def forward(self, queries, keys, values, attn_mask, query_lengths,
-                key_lengths):
+    def forward(self, queries, keys, values, attn_mask, query_lengths, key_lengths):
         """
         Using the same frame work as the fast_Transformers attention layer
         but injecting rotary information to the queries and the keys
-        after the keys and queries are projected. 
+        after the keys and queries are projected.
         In the argument description we make use of the following sizes
 
             - N: the batch size
@@ -67,15 +80,9 @@ class RotateAttentionLayer(AttentionLayer):
         # Let the world know of the qkv
         self.event_dispatcher.dispatch(QKVEvent(self, queries, keys, values))
 
-
         # Compute the attention
         new_values = self.inner_attention(
-            queries,
-            keys,
-            values,
-            attn_mask,
-            query_lengths,
-            key_lengths
+            queries, keys, values, attn_mask, query_lengths, key_lengths
         ).view(N, L, -1)
 
         # Project the output and return

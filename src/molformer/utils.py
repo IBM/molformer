@@ -3,7 +3,6 @@ import yaml
 
 
 def read_config(hparams):
-
     with open(hparams) as f:
         config = Namespace(**yaml.safe_load(f))
 

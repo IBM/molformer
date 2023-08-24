@@ -9,7 +9,9 @@ from pytorch_lightning.utilities import seed
 import torch.nn.functional as F
 from functools import partial
 
-from rotate_attention.rotate_builder import RotateEncoderBuilder as rotate_builder
+from molformer.model.rotate_attention.rotate_builder import (
+    RotateEncoderBuilder as rotate_builder,
+)
 from fast_transformers.feature_maps import GeneralizedRandomFeatures
 
 
@@ -63,19 +65,6 @@ class LightningModule(pl.LightningModule):
         # if we are starting from scratch set seeds
         if config.restart_path == "":
             seed.seed_everything(config.seed)
-
-    #     class lm_layer(nn.Module):
-    #         def __init__(self, n_embd, n_vocab):
-    #             super().__init__()
-    #             self.embed = nn.Linear(n_embd, n_embd)
-    #             self.ln_f = nn.LayerNorm(n_embd)
-    #             self.head = nn.Linear(n_embd, n_vocab, bias=False)
-    #         def forward(self, tensor):
-    #             tensor = self.embed(tensor)
-    #             tensor = F.gelu(tensor)
-    #             tensor = self.ln_f(tensor)
-    #             tensor = self.head(tensor)
-    #             return tensor
 
     def on_save_checkpoint(self, checkpoint):
         # save RNG states each time the model and states are saved
@@ -177,7 +166,6 @@ class LightningModule(pl.LightningModule):
         for chunk in range(len(idxl)):
             idx = idxl[chunk]
             targets = targetsl[chunk]
-            len(idx)
             b, t = idx.size()
             # forward the model
             token_embeddings = self.tok_emb(
@@ -202,7 +190,7 @@ class LightningModule(pl.LightningModule):
             else:
                 loss += loss_tmp
         self.log("train_loss", loss, on_step=True)
-        return {"loss": loss}  # , 'log':tensorboard_log}
+        return {"loss": loss}
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.tensor([output["loss"] for output in outputs]).mean()
@@ -218,7 +206,6 @@ class LightningModule(pl.LightningModule):
         for chunk in range(len(idxl)):
             idx = idxl[chunk]
             targets = targetsl[chunk]
-            len(idx)
             b, t = idx.size()
             # forward the model
             token_embeddings = self.tok_emb(
