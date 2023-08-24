@@ -139,7 +139,7 @@ def get_parser(parser=None):
     parser.add_argument(
         "--seed_path",
         type=str,
-        default="/Users/kevinmaikjablonka/Downloads/Pretrained MoLFormer/checkpoints/N-Step-Checkpoint_0_0.ckpt",
+        default="/Users/kevinmaikjablonka/Downloads/Pretrained MoLFormer/checkpoints/N-Step-Checkpoint_1_10000.ckpt",
         help="path to  trainer file to continue training",
     )
     parser.add_argument(
