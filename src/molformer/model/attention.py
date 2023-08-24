@@ -77,7 +77,7 @@ class TestBert(nn.Module):
                 query_dimensions=config.n_embd // config.n_head,
                 value_dimensions=config.n_embd // config.n_head,
                 feed_forward_dimensions=config.n_embd,
-                attention_type="linearwweights",
+                attention_type="linear",
                 feature_map=partial(
                     GeneralizedRandomFeatures,
                     n_dims=config.num_feats,
