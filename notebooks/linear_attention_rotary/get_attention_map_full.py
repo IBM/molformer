@@ -232,98 +232,40 @@ def get_tokens_from_ids(input_ids, tokenizer):
 
 
 def get_full_attention(molecule, bert_model, config, tokenizer):
-    loader = None
     device = config.device
-    if loader is not None:
-        for batch_number, mols in enumerate(loader):
-            batch_to_save = []
-            with torch.no_grad():
-                # print(batch_number)
-                if config.canonical is True:
-                    output = [
-                        normalize_smiles(smiles, canonical=True, isomeric=False)
-                        for smiles in mols["text"]
-                        if smiles is not None
-                    ]
-                else:
-                    output = mols["text"]
-                batch_ids = tokenizer.batch_encode_plus(
-                    output,
-                    padding=True,
-                    add_special_tokens=True,
-                    return_attention_mask=True,
-                    return_length=True,
-                )
 
-                if config.mask is True:
-                    att_mask = FullMask(
-                        torch.tensor(batch_ids["attention_mask"], dtype=bool).to(
-                            device
-                        ),
-                        device=device,
-                    )
-                else:
-                    att_mask = FullMask(
-                        torch.ones(
-                            torch.tensor(batch_ids["input_ids"]).size(), dtype=bool
-                        ).to(device),
-                        device=device,
-                    )
+    with torch.no_grad():
+        if config.canonical is True:
+            output = [normalize_smiles(molecule, canonical=True, isomeric=False)]
+        else:
+            output = molecule
 
-                embeddings, attention_mask = bert_model(
-                    torch.tensor(batch_ids["input_ids"]).to(device),
-                    att_mask,
-                    mode=config.mode,
-                )
+        batch_ids = tokenizer.batch_encode_plus(
+            [output],
+            padding=True,
+            add_special_tokens=True,
+            return_attention_mask=True,
+            return_length=True,
+        )
 
-            for number, mol in enumerate(output):
-                batch_to_save.append((embeddings[number].cpu().numpy(), mol))
+        raw_tokens = get_tokens_from_ids(batch_ids["input_ids"], tokenizer)[0]
 
-            # if len(batch_to_save) >= 500:
-            batch_name = "batch_num_{}.pth".format(
-                batch_number + (50000 * config.chunk_num)
+        if config.mask is True:
+            att_mask = FullMask(
+                torch.tensor(batch_ids["attention_mask"], dtype=bool).to(device),
+                device=device,
             )
-            chunk_name = "chunk_num_{}".format(config.chunk_num)
-            if batch_number % 250 == 0:
-                print(batch_name)
-            torch.save(
-                batch_to_save[0],
-                os.path.join("./embedding_dump_deterministic", chunk_name, batch_name),
+        else:
+            att_mask = FullMask(
+                torch.ones(torch.tensor(batch_ids["input_ids"]).size(), dtype=bool).to(
+                    device
+                ),
+                device=device,
             )
 
-    else:
-        with torch.no_grad():
-            if config.canonical is True:
-                output = [normalize_smiles(molecule, canonical=True, isomeric=False)]
-            else:
-                output = molecule
-
-            batch_ids = tokenizer.batch_encode_plus(
-                [output],
-                padding=True,
-                add_special_tokens=True,
-                return_attention_mask=True,
-                return_length=True,
-            )
-
-            raw_tokens = get_tokens_from_ids(batch_ids["input_ids"], tokenizer)[0]
-
-            if config.mask is True:
-                att_mask = FullMask(
-                    torch.tensor(batch_ids["attention_mask"], dtype=bool).to(device),
-                    device=device,
-                )
-            else:
-                att_mask = FullMask(
-                    torch.ones(
-                        torch.tensor(batch_ids["input_ids"]).size(), dtype=bool
-                    ).to(device),
-                    device=device,
-                )
-
-            embeddings, attention_mask = bert_model(
-                torch.tensor(batch_ids["input_ids"]).to(device),
-                att_mask,
-                mode=config.mode,
-            )
-            return attention_mask, raw_tokens
+        embeddings, attention_mask = bert_model(
+            torch.tensor(batch_ids["input_ids"]).to(device),
+            att_mask,
+            mode=config.mode,
+        )
+        return attention_mask, raw_tokens

@@ -13,13 +13,22 @@ class RotaryEmbedding(torch.nn.Module):
     def forward(self, x, seq_dim=1):
         seq_len = x.shape[seq_dim]
         if seq_len != self.seq_len_cached:
+            # if seq_len > self.seq_len_cached:
             self.seq_len_cached = seq_len
             t = torch.arange(x.shape[seq_dim], device=x.device).type_as(self.inv_freq)
             freqs = torch.einsum("i,j->ij", t, self.inv_freq)
             emb = torch.cat((freqs, freqs), dim=-1).to(x.device)
             self.cos_cached = emb.cos()[None, :, None, :]
             self.sin_cached = emb.sin()[None, :, None, :]
+            # else:
+            #    cos_return = self.cos_cached[..., :seq_len]
+            #    sin_return = self.sin_cached[..., :seq_len]
+            #    return cos_return, sin_return
+
         return self.cos_cached, self.sin_cached
+
+
+# rotary pos emb helpers:
 
 
 def rotate_half(x):

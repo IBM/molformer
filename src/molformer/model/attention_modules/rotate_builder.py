@@ -1,5 +1,6 @@
+from .transformers import VizEncoderLayer, VizEncoder
 from .attention_layer import RotateAttentionLayer
-from fast_transformers.transformers import TransformerEncoder, TransformerEncoderLayer
+
 from fast_transformers.builders.transformer_builders import (
     BaseTransformerEncoderBuilder,
 )
@@ -35,8 +36,8 @@ class RotateEncoderBuilder(BaseTransformerEncoderBuilder):
 
     def _get_encoder_class(self):
         """Return the class for the transformer encoder."""
-        return TransformerEncoder
+        return VizEncoder
 
     def _get_encoder_layer_class(self):
         """Return the class for the transformer encoder layer."""
-        return TransformerEncoderLayer
+        return VizEncoderLayer
