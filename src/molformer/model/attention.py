@@ -1,6 +1,6 @@
 from math import sqrt
 from molformer.model.base_bert import LM_Layer
-from molformer.model.rotate_attention.rotate_builder import (
+from molformer.model.attention_modules.rotate_builder import (
     RotateEncoderBuilder as rotate_builder,
 )
 from fast_transformers.events import EventDispatcher, AttentionEvent
@@ -17,6 +17,7 @@ from torch.nn import Dropout, Module
 
 from fast_transformers.feature_maps import GeneralizedRandomFeatures
 from functools import partial
+from fast_transformers.masking import LengthMask
 
 
 class TestBert(nn.Module):
@@ -111,7 +112,9 @@ class TestBert(nn.Module):
             x = self.drop(token_embeddings)
 
         if mask is not None:
-            x, attention_mask = self.blocks(x, length_mask=LM_Layer(mask._mask.sum(-1)))
+            x, attention_mask = self.blocks(
+                x, length_mask=LengthMask(mask._mask.sum(-1))
+            )
 
         else:
             x, attention_mask = self.blocks(x)

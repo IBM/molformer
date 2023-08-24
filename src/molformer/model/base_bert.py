@@ -9,7 +9,7 @@ from pytorch_lightning.utilities import seed
 import torch.nn.functional as F
 from functools import partial
 
-from molformer.model.rotate_attention.rotate_builder import (
+from molformer.model.attention_modules.rotate_builder import (
     RotateEncoderBuilder as rotate_builder,
 )
 from fast_transformers.feature_maps import GeneralizedRandomFeatures

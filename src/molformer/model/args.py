@@ -7,7 +7,10 @@ def get_parser(parser=None):
 
     # Model
     # model_arg = parser.add_argument_group('Model')
-    parser.add_argument("--n_head", type=int, default=8, help="GPT number of heads")
+    parser.add_argument("--n_head", type=int, default=12, help="GPT number of heads")
+    parser.add_argument(
+        "--fold", type=int, default=0, help="number of folds for fine tuning"
+    )
     parser.add_argument("--n_layer", type=int, default=12, help="GPT number of layers")
     parser.add_argument(
         "--q_dropout", type=float, default=0.5, help="Encoder layers dropout"
@@ -68,6 +71,9 @@ def get_parser(parser=None):
         "--n_last", type=int, default=1000, help="Number of iters to smooth loss calc"
     )
     parser.add_argument("--n_jobs", type=int, default=1, help="Number of threads")
+    """parser.add_argument('--molecule',
+                        type=str, default='C=O=C',
+                        help='input molecule string from command line')"""
     parser.add_argument(
         "--accelerator",
         type=str,
@@ -83,7 +89,7 @@ def get_parser(parser=None):
     parser.add_argument(
         "--device",
         type=str,
-        default="cuda",
+        default="cpu",
         help='Device to run: "cpu" or "cuda:<device number>"',
     )
     parser.add_argument("--seed", type=int, default=12345, help="Seed")
@@ -99,7 +105,7 @@ def get_parser(parser=None):
         "--gen_save", type=str, required=False, help="Where to save the gen molecules"
     )
     parser.add_argument(
-        "--max_len", type=int, default=100, help="Max of length of SMILES"
+        "--max_len", type=int, default=202, help="Max of length of SMILES"
     )
     parser.add_argument(
         "--train_load", type=str, required=False, help="Where to load the model"
@@ -111,7 +117,7 @@ def get_parser(parser=None):
         "--n_workers",
         type=int,
         required=False,
-        default=1,
+        default=8,
         help="Where to load the model",
     )
     # beam search hyper parameters
@@ -131,15 +137,9 @@ def get_parser(parser=None):
         "--nucleus_thresh", type=float, default=0.9, help="nucleus sampling threshold"
     )
     parser.add_argument(
-        "--finetune_path",
+        "--seed_path",
         type=str,
-        default="",
-        help="path to  trainer file to continue training",
-    )
-    parser.add_argument(
-        "--restart_path",
-        type=str,
-        default="",
+        default="/Users/kevinmaikjablonka/Downloads/Pretrained MoLFormer/checkpoints/N-Step-Checkpoint_1_10000.ckpt",
         help="path to  trainer file to continue training",
     )
     parser.add_argument(
@@ -186,6 +186,10 @@ def get_parser(parser=None):
     parser.add_argument("--vocab_save", type=str, help="Where to save the vocab")
 
     # resume_arg = parser.add_argument_group('Resume')
+    parser.add_argument("--mask", default=False, action="store_true", help="mask")
+    parser.add_argument(
+        "--canonical", default=False, action="store_true", help="convert to canonical"
+    )
     parser.add_argument(
         "--debug",
         default=False,
@@ -208,7 +212,7 @@ def get_parser(parser=None):
     )
     parser.add_argument(
         "--rotate",
-        default=False,
+        default=True,
         action="store_true",
         help="use rotational relative embedding",
     )
@@ -248,44 +252,46 @@ def get_parser(parser=None):
         help="number of random reatures for FAVOR+",
     )
     parser.add_argument(
-        "--max_epochs", type=int, required=False, default=1, help="max number of epochs"
+        "--max_epochs", type=int, required=False, default=3, help="max number of epochs"
     )
 
     # debug() FINE TUNEING
     # parser.add_argument('--save_dir', type=str, required=True)
     parser.add_argument(
-        "--mode", type=str, default="cls", help="type of pooling to use"
+        "--mode", type=str, default="avg", help="type of pooling to use"
     )
-    parser.add_argument("--dataset_length", type=int, default=None, required=False)
-    parser.add_argument("--num_workers", type=int, default=0, required=False)
+    parser.add_argument(
+        "--train_dataset_length", type=int, default=None, required=False
+    )
+    parser.add_argument("--eval_dataset_length", type=int, default=None, required=False)
+    parser.add_argument(
+        "--desc_skip_connection", type=bool, default=False, required=False
+    )
+    parser.add_argument("--num_workers", type=int, default=2, required=False)
     parser.add_argument("--dropout", type=float, default=0.1, required=False)
-    # parser.add_argument("--dims", type=int, nargs="*", default="", required=False)
     parser.add_argument(
         "--smiles_embedding",
         type=str,
-        default="/dccstor/medscan7/smallmolecule/runs/ba-predictor/small-data/embeddings/protein/ba_embeddings_tanh_512_2986138_2.pt",
+        default="../../data/etc/ba_embeddings_tanh_512_2986138_2.pt",
     )
     # parser.add_argument("--train_pct", type=str, required=False, default="95")
-    # parser.add_argument("--aug", type=int, required=True)
+    parser.add_argument("--aug", type=int, required=False)
+    parser.add_argument("--num_classes", type=int, required=False)
     parser.add_argument("--dataset_name", type=str, required=False, default="sol")
     parser.add_argument("--measure_name", type=str, required=False, default="measure")
-    # parser.add_argument("--emb_type", type=str, required=True)
-    # parser.add_argument("--checkpoints_folder", type=str, required=True)
-    # parser.add_argument("--results_dir", type=str, required=True)
-    # parser.add_argument("--patience_epochs", type=int, required=True)
+    parser.add_argument("--checkpoints_folder", type=str, required=False)
+    parser.add_argument("--emb_type", type=str, required=False)
+    parser.add_argument("--checkpoint_root", type=str, required=False)
 
     parser.add_argument(
         "--data_root",
         type=str,
         required=False,
-        default="/dccstor/medscan7/smallmolecule/runs/ba-predictor/small-data/affinity",
+        default="../../data/etc/affinity",
     )
-    # parser.add_argument("--use_bn", type=int, default=0)
     parser.add_argument("--use_linear", type=int, default=0)
 
     parser.add_argument("--lr", type=float, default=0.001)
-    # parser.add_argument("--weight_decay", type=float, default=5e-4)
-    # parser.add_argument("--val_check_interval", type=float, default=1.0)
     parser.add_argument("--batch_size", type=int, default=64)
 
     return parser
@@ -293,5 +299,5 @@ def get_parser(parser=None):
 
 def parse_args():
     parser = get_parser()
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
     return args

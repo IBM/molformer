@@ -1,5 +1,6 @@
 from argparse import Namespace
 import yaml
+from rdkit import Chem
 
 
 def read_config(hparams):
@@ -15,3 +16,10 @@ def get_argparse_defaults(parser):
         if not action.required and action.dest != "help":
             defaults[action.dest] = action.default
     return defaults
+
+
+def normalize_smiles(smi, canonical, isomeric):
+    normalized = Chem.MolToSmiles(
+        Chem.MolFromSmiles(smi), canonical=canonical, isomericSmiles=isomeric
+    )
+    return normalized
