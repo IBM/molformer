@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import random
-from pubchem_encoder import Encoder
+from src.molformer.model.pubchem_encoder import Encoder
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import seed
 
