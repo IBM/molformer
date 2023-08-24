@@ -1,5 +1,6 @@
 import argparse
 
+
 def get_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser()
@@ -231,8 +232,9 @@ def get_parser(parser=None):
     parser.add_argument("--batch_size", type=int, default=64)
 
     return parser
+
+
 def parse_args():
     parser = get_parser()
     args = parser.parse_args()
     return args
-
