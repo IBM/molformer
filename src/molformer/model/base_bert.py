@@ -3,12 +3,12 @@ from torch import nn
 import numpy as np
 import random
 
-from src.molformer.model.pubchem_encoder import Encoder
+from molformer.model.pubchem_encoder import Encoder
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import seed
 import torch.nn.functional as F
 from functools import partial
-from apex import optimizers
+
 from rotate_attention.rotate_builder import RotateEncoderBuilder as rotate_builder
 from fast_transformers.feature_maps import GeneralizedRandomFeatures
 
@@ -113,6 +113,8 @@ class LightningModule(pl.LightningModule):
             module.weight.data.fill_(1.0)
 
     def configure_optimizers(self):
+        from apex import optimizers
+
         # separate out all parameters to those that will and won't experience regularizing weight decay
         decay = set()
         no_decay = set()
@@ -161,6 +163,7 @@ class LightningModule(pl.LightningModule):
         ]
         betas = (0.9, 0.99)
         learning_rate = self.train_config.lr_start * self.train_config.lr_multiplier
+
         optimizer = optimizers.FusedLAMB(optim_groups, lr=learning_rate, betas=betas)
         return optimizer
 
