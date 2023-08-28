@@ -1,4 +1,5 @@
 import time
+from sklearn.metrics import accuracy_score, average_precision_score, f1_score, precision_score, recall_score, roc_auc_score
 import torch
 from torch import nn
 import args
@@ -25,8 +26,10 @@ from sklearn.metrics import r2_score
 from utils import normalize_smiles
 
 # create a function (this my favorite choice)
-def RMSELoss(yhat,y):
-    return torch.sqrt(torch.mean((yhat-y)**2))
+def binary_cross_entropy_loss(yhat,y):
+    criterion = nn.BCEWithLogitsLoss()
+    loss = criterion(yhat, y)
+    return loss
 
 
 class LightningModule(pl.LightningModule):
@@ -42,6 +45,12 @@ class LightningModule(pl.LightningModule):
         self.min_loss = {
             self.hparams.measure_name + "min_valid_loss": torch.finfo(torch.float32).max,
             self.hparams.measure_name + "min_epoch": 0,
+        }
+        
+        self.max_ap = {
+            self.hparams.measure_name + "max_ap": -float('inf'),
+            self.hparams.measure_name + "max_accuracy": 0.0,
+            self.hparams.measure_name + "max_epoch": -1,
         }
 
         # Word embeddings layer
@@ -70,7 +79,7 @@ class LightningModule(pl.LightningModule):
         #########################################
 
         self.fcs = []  
-        self.loss = torch.nn.L1Loss()
+        self.loss = torch.nn.BCELoss()
         self.net = self.Net(
             config.n_embd, dims=config.dims, dropout=config.dropout,
         )
@@ -111,7 +120,7 @@ class LightningModule(pl.LightningModule):
             else:
                 z = self.final(z)
 
-            return z
+            return F.sigmoid(z)
 
     class lm_layer(nn.Module):
         def __init__(self, n_embd, n_vocab):
@@ -232,12 +241,46 @@ class LightningModule(pl.LightningModule):
         sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
         loss_input = sum_embeddings / sum_mask
         loss, pred, actual = self.get_loss(loss_input, targets)
+        actual_cpu = actual.detach().cpu().numpy()
+        pred_cpu = pred.detach().cpu().numpy()
+        
+        #auc = roc_auc_score(actual_cpu, pred_cpu)
+        
+        #ap = average_precision_score(actual_cpu, pred_cpu)
+        
+        #precision = precision_score(actual_cpu, pred_cpu > 0.5) 
+        
+        #recall = recall_score(actual_cpu, pred_cpu > 0.5)
+        
+        #f1 = f1_score(actual_cpu, pred_cpu > 0.5)
+        
+        #accuracy = accuracy_score(actual_cpu, pred_cpu > 0.5)
+        
 
         self.log('train_loss', loss, on_step=True)
+        #self.log('AUC', auc)
+        #self.log('AP', ap)
+        #self.log('Precision', precision)
+        #self.log('Recall', recall)
+        #self.log('F1-score', f1)
+        #self.log('Acc', accuracy)
 
-        logs = {"train_loss": loss}
+        logs = {
+            "train_loss": loss
+            #"AUC": auc,
+            #"AP": ap,
+            #"Precision": precision,
+            #"Recall": recall,
+            #"F1-score": f1,
+            #"Acc": accuracy
+        }
 
-        return {"loss": loss}
+        return {'loss': loss}
+               #'Precision': precision_score(actual_cpu, pred_cpu),
+               #'Recall': recall_score(actual_cpu, pred_cpu),
+               #'AUC': roc_auc_score(actual_cpu, pred_cpu),
+               #'F1-score': f1_score(actual_cpu, pred_cpu),
+               #'AP': average_precision_score(actual_cpu, pred_cpu)}
 
     def validation_step(self, val_batch, batch_idx, dataset_idx):
         idx =     val_batch[0]
@@ -278,33 +321,46 @@ class LightningModule(pl.LightningModule):
             preds_cpu = preds.detach().cpu().numpy()
             pearson_r = pearsonr(actuals_cpu, preds_cpu)
             r2 = r2_score(actuals_cpu, preds_cpu)
+            
+            auc = roc_auc_score(actuals_cpu, preds_cpu)
+            print("auc: ", auc)
+            ap = average_precision_score(actuals_cpu, preds_cpu)
+            print("ap: ", ap)
+            precision = precision_score(actuals_cpu, preds_cpu > 0.5) 
+            print("precision: ", precision)
+            recall = recall_score(actuals_cpu, preds_cpu > 0.5)
+            print("recall: ", recall)
+            f1 = f1_score(actuals_cpu, preds_cpu > 0.5)
+            print("f1: ", f1)
+            accuracy = accuracy_score(actuals_cpu, preds_cpu > 0.5)
+            print("accuracy: ", accuracy)
             tensorboard_logs.update(
                 {
                     # dataset + "_avg_val_loss": avg_loss,
                     self.hparams.measure_name + "_" + dataset + "_loss": val_loss,
-                    self.hparams.measure_name + "_" + dataset + "_r2": r2,
-                    self.hparams.measure_name + "_" + dataset + "_pearsonr": pearson_r[0],
+                    self.hparams.measure_name + "_accuracy": accuracy,
+                    self.hparams.measure_name + "_ap": ap,
                 }
             )
 
         if (
-            tensorboard_logs[self.hparams.measure_name + "_valid_loss"]
-            < self.min_loss[self.hparams.measure_name + "min_valid_loss"]
+            tensorboard_logs[self.hparams.measure_name + "_ap"]
+            < self.max_ap[self.hparams.measure_name + "max_ap"]
         ):
+            self.max_ap[self.hparams.measure_name + "max_ap"] = tensorboard_logs[
+            self.hparams.measure_name + "_ap"
+            ]
+            self.max_ap[self.hparams.measure_name + "max_accuracy"] = tensorboard_logs[
+            self.hparams.measure_name + "_accuracy"
+            ]
+            self.max_ap[self.hparams.measure_name + "max_epoch"] = self.current_epoch
+
+            tensorboard_logs[self.hparams.measure_name + "_max_ap"] = self.max_ap[
+            self.hparams.measure_name + "max_ap"
+            ]
             self.min_loss[self.hparams.measure_name + "min_valid_loss"] = tensorboard_logs[
                 self.hparams.measure_name + "_valid_loss"
             ]
-            self.min_loss[self.hparams.measure_name + "min_test_loss"] = tensorboard_logs[
-                self.hparams.measure_name + "_test_loss"
-            ]
-            self.min_loss[self.hparams.measure_name + "min_epoch"] = self.current_epoch
-
-        tensorboard_logs[self.hparams.measure_name + "_min_valid_loss"] = self.min_loss[
-            self.hparams.measure_name + "min_valid_loss"
-        ]
-        tensorboard_logs[self.hparams.measure_name + "_min_test_loss"] = self.min_loss[
-            self.hparams.measure_name + "min_test_loss"
-        ]
 
         self.logger.log_metrics(tensorboard_logs, self.global_step)
 
@@ -315,14 +371,19 @@ class LightningModule(pl.LightningModule):
         append_to_file(
             os.path.join(self.hparams.results_dir, "results_" + ".csv"),
             f"{self.hparams.measure_name}, {self.current_epoch},"
-            + f"{tensorboard_logs[self.hparams.measure_name + '_valid_loss']},"
-            + f"{tensorboard_logs[self.hparams.measure_name + '_test_loss']},"
-            + f"{self.min_loss[self.hparams.measure_name + 'min_epoch']},"
-            + f"{self.min_loss[self.hparams.measure_name + 'min_valid_loss']},"
-            + f"{self.min_loss[self.hparams.measure_name + 'min_test_loss']}",
+            + f"{tensorboard_logs[self.hparams.measure_name + '_ap']},"
+            + f"{tensorboard_logs[self.hparams.measure_name + '_accuracy']},"
+            + f"{self.max_ap[self.hparams.measure_name + 'max_epoch']},"
+            + f"{self.max_ap[self.hparams.measure_name + 'max_ap']},"
+            + f"{self.max_ap[self.hparams.measure_name + 'max_accuracy']}",
         )
 
         return {"avg_val_loss": avg_loss}
+               #'Precision': precision_score(actuals_cpu, preds_cpu),
+               #'Recall': recall_score(actuals_cpu, preds_cpu),
+               #'AUC': roc_auc_score(actuals_cpu, preds_cpu),
+               #'F1-score': f1_score(actuals_cpu, preds_cpu),
+               #'AP': average_precision_score(actuals_cpu, preds_cpu)}
 
 
 def get_dataset(data_root, filename, dataset_len, aug, measure_name):
@@ -491,12 +552,23 @@ class CheckpointEveryNSteps(pl.Callback):
             trainer.save_checkpoint(ckpt_path)
 
 class ModelCheckpointAtEpochEnd(pl.Callback):
+    def __init__(self, metric_name='ap'):
+        super().__init__()
+        self.metric_name = metric_name
+        self.best_metric_value = float('inf')
+    
     def on_epoch_end(self, trainer, pl_module):
         metrics = trainer.callback_metrics
-        metrics['epoch'] = trainer.current_epoch
-        if trainer.disable_validation:
-            trainer.checkpoint_callback.on_validation_end(trainer, pl_module)
+        epoch = trainer.current_epoch
+        
+        if self.metric_name in metrics:
+            current_metric_value = metrics[self.metric_name]
+            if current_metric_value < self.best_metric_value:
+                self.best_metric_value = current_metric_value
 
+                filename = f"best_checkpoint_epoch_{epoch}_metric_{self.metric_name}_{current_metric_value:.4f}.ckpt"
+                ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, filename)
+                trainer.save_checkpoint(ckpt_path)
 
 def append_to_file(filename, line):
     with open(filename, "a") as f:
