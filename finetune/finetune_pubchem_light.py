@@ -68,6 +68,7 @@ class LightningModule(pl.LightningModule):
             )
         self.pos_emb = None
         self.tok_emb = nn.Embedding(n_vocab, config.n_embd)
+        self.tok_emb = self.freeze(self.tok_emb)
         self.drop = nn.Dropout(config.d_dropout)
         ## transformer
         self.blocks = builder.get()
@@ -134,6 +135,23 @@ class LightningModule(pl.LightningModule):
             tensor = self.ln_f(tensor)
             tensor = self.head(tensor)
             return tensor
+        
+    def forward(self, idx, mask):
+        token_embeddings = self.tok_emb(idx) # each index maps to a (learnable) vector
+        x = self.drop(token_embeddings)
+        x = self.blocks(x, length_mask=LM(mask.sum(-1)))
+        token_embeddings = x
+        input_mask_expanded = mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+        sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+        sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+        loss_input = sum_embeddings / sum_mask
+        return self.net.forward(loss_input).squeeze()
+    
+    def freeze(self, layer):
+        for name, para in layer.named_parameters():
+            para.requires_grad = False
+        return layer
+
 
     def get_loss(self, smiles_emb, measures):
 
@@ -440,6 +458,7 @@ class PropertyPredictionDataModule(pl.LightningDataModule):
         #self.smiles_emb_size = hparams.n_embd
         self.tokenizer = MolTranBertTokenizer('bert_vocab.txt')
         self.dataset_name = hparams.dataset_name
+        self.prepare_data()
 
     def get_split_dataset_filename(dataset_name, split):
         return dataset_name + "_" + split + ".csv"
@@ -483,7 +502,8 @@ class PropertyPredictionDataModule(pl.LightningDataModule):
         )
 
         self.train_ds = train_ds
-        self.val_ds = [val_ds] + [test_ds]
+        self.val_ds = val_ds 
+        self.test_ds = test_ds
 
         # print(
         #     f"Train dataset size: {len(self.train_ds)}, val: {len(self.val_ds1), len(self.val_ds2)}, test: {len(self.test_ds)}"
@@ -508,6 +528,15 @@ class PropertyPredictionDataModule(pl.LightningDataModule):
     def train_dataloader(self):
         return DataLoader(
             self.train_ds,
+            batch_size=self.hparams.batch_size,
+            num_workers=self.hparams.num_workers,
+            shuffle=True,
+            collate_fn=self.collate,
+        )
+    
+    def test_dataloader(self):
+        return DataLoader(
+            self.test_ds,
             batch_size=self.hparams.batch_size,
             num_workers=self.hparams.num_workers,
             shuffle=True,
@@ -563,7 +592,7 @@ class ModelCheckpointAtEpochEnd(pl.Callback):
         
         if self.metric_name in metrics:
             current_metric_value = metrics[self.metric_name]
-            if current_metric_value < self.best_metric_value:
+            if current_metric_value > self.best_metric_value:
                 self.best_metric_value = current_metric_value
 
                 filename = f"best_checkpoint_epoch_{epoch}_metric_{self.metric_name}_{current_metric_value:.4f}.ckpt"
@@ -616,7 +645,7 @@ def main():
     os.makedirs(checkpoint_dir, exist_ok=True)
 
     checkpoint_path = os.path.join(checkpoints_folder, margs.measure_name)
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(period=1, save_last=True, dirpath=checkpoint_dir, filename='checkpoint', verbose=True)
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(period=1, save_top_k=1, monitor='AP',mode='max', dirpath=checkpoint_dir, filename='best_model', verbose=True)
 
     print(margs)
 
@@ -638,7 +667,7 @@ def main():
         model = LightningModule(margs, tokenizer).load_from_checkpoint(margs.seed_path, strict=False, config=margs, tokenizer=tokenizer, vocab=len(tokenizer.vocab))
 
 
-    last_checkpoint_file = os.path.join(checkpoint_dir, "last.ckpt")
+    last_checkpoint_file = os.path.join(checkpoint_dir, "best_model.ckpt")
     resume_from_checkpoint = None
     if os.path.isfile(last_checkpoint_file):
         print(f"resuming training from : {last_checkpoint_file}")
