@@ -1,32 +1,40 @@
 import torch
+from typing import List
+from transformers import BertTokenizer
+import regex as re
+import args
+from tokenizer.tokenizer import MolTranBertTokenizer
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, f1_score, average_precision_score
 import pandas as pd
 import numpy as np
-from molformer.finetune.finetune_pubchem_light import LightningModule
+from finetune_pubchem_light import LightningModule, PropertyPredictionDataModule
 
 def load_pretrained_model(checkpoint_path, model_architecture):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = model_architecture().to(device)
+    model = model_architecture.to(device)
+    print("Loading model checkpoint from:", checkpoint_path)
+    print("Using device:", device)
     checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint['model_state_dict'])
+    print("checkpoint: ", checkpoint.keys())
+    model.load_state_dict(checkpoint['state_dict'])
     model.eval()
     return model
 
 
-def predict_smiles(smiles_list: List[str]):
+def predict_smiles(datamodule, model):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
     with torch.no_grad():
         predictions = []
-        for smiles in smiles_list:
-            graph = smiles2graph(smiles)  
-            x = torch.tensor(graph['node_feat'], dtype=torch.float).unsqueeze(0).to(device)
-            edge_index = torch.tensor(graph['edge_index'], dtype=torch.long).unsqueeze(0).to(device)
-            edge_attr = torch.tensor(graph['edge_feat'], dtype=torch.float).unsqueeze(0).to(device)
+        y_test = []
+        for idx, mask, labels in datamodule.test_dataloader():
+            idx = idx.to(device)
+            mask = mask.to(device)
 
-            output = model(x, edge_index, edge_attr)
-            prediction = output.squeeze().item()
-            predictions.append(prediction)
+            output = model(idx, mask)
+            prediction = output.squeeze().tolist()
+            predictions.extend(prediction)
+            y_test.extend(labels.tolist())
             
         preds = [1 if pred >= 0.5 else 0 for pred in predictions]
         
@@ -48,17 +56,24 @@ def predict_smiles(smiles_list: List[str]):
 
 def main():
     
-    model_architecture = LightningModule()
+    
+    margs = args.parse_args()
+    
+    datamodule = PropertyPredictionDataModule(margs)
+    
+    #for batch in datamodule.test_dataloader():
+        #print("batch: ", batch)
+        #break
+    
+    config = margs
+    tokenizer = MolTranBertTokenizer('bert_vocab.txt')
+    model_architecture = LightningModule(config, tokenizer)
     checkpoint_path = 'last.ckpt'
 
     model = load_pretrained_model(checkpoint_path, model_architecture)
     
-    df = pd.read_csv('DEL_v4.csv')
-
-    smiles_list = df[df['Split'] == 'test']['SMILES'].tolist() 
-    y_test = df[df['Split'] == 'test']['Activity'].to_numpy()
-    
-    predictions = predict_smiles(smiles_list, y_test)
+    predictions = predict_smiles(datamodule, model)
 
 if __name__ == "__main__":
     main()
+    
