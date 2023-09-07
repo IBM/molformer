@@ -13,7 +13,7 @@ from molformer.model.attention_modules.rotate_builder import (
     RotateEncoderBuilder as rotate_builder,
 )
 from fast_transformers.feature_maps import GeneralizedRandomFeatures
-
+from torch.optim import AdamW
 
 class LM_Layer(nn.Module):
     def __init__(self, n_embd, n_vocab):
@@ -102,7 +102,6 @@ class LightningModule(pl.LightningModule):
             module.weight.data.fill_(1.0)
 
     def configure_optimizers(self):
-        from apex import optimizers
 
         # separate out all parameters to those that will and won't experience regularizing weight decay
         decay = set()
@@ -153,7 +152,7 @@ class LightningModule(pl.LightningModule):
         betas = (0.9, 0.99)
         learning_rate = self.train_config.lr_start * self.train_config.lr_multiplier
 
-        optimizer = optimizers.FusedLAMB(optim_groups, lr=learning_rate, betas=betas)
+        optimizer = AdamW(optim_groups, lr=learning_rate, betas=betas)
         return optimizer
 
     def training_step(self, batch, batch_idx):
