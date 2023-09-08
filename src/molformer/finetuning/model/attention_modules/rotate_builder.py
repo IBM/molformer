@@ -1,11 +1,11 @@
 from torch.nn import LayerNorm
 
-from attention_layer import RotateAttentionLayer 
+from .attention_layer import RotateAttentionLayer 
 from fast_transformers.transformers import TransformerEncoder, TransformerEncoderLayer
 from fast_transformers.builders.base import BaseBuilder
 from fast_transformers.builders.transformer_builders import BaseTransformerEncoderBuilder
 from fast_transformers.builders.attention_builders import AttentionBuilder
-
+from molformer.model.attention_modules.rotate_builder import VizEncoder, VizEncoderLayer
 
 class RotateEncoderBuilder(BaseTransformerEncoderBuilder):
     """Build a batch transformer encoder with Relative Rotary embeddings
@@ -35,8 +35,8 @@ class RotateEncoderBuilder(BaseTransformerEncoderBuilder):
 
     def _get_encoder_class(self):
         """Return the class for the transformer encoder."""
-        return TransformerEncoder
+        return VizEncoder
 
     def _get_encoder_layer_class(self):
         """Return the class for the transformer encoder layer."""
-        return TransformerEncoderLayer
+        return VizEncoderLayer

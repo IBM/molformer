@@ -6,7 +6,7 @@ attention module.
 
 from fast_transformers.attention import AttentionLayer
 from fast_transformers.events import QKVEvent
-from rotary import RotaryEmbedding, apply_rotary_pos_emb
+from .rotary import RotaryEmbedding, apply_rotary_pos_emb
 
 
 class RotateAttentionLayer(AttentionLayer):
@@ -81,9 +81,11 @@ class RotateAttentionLayer(AttentionLayer):
         self.event_dispatcher.dispatch(QKVEvent(self, queries, keys, values))
 
         # Compute the attention
-        new_values = self.inner_attention(
+        
+        new_values, attention_weights = self.inner_attention(
             queries, keys, values, attn_mask, query_lengths, key_lengths
-        ).view(N, L, -1)
+        )
 
+        new_values = new_values.view(N, L, -1)
         # Project the output and return
-        return self.out_projection(new_values)
+        return self.out_projection(new_values), attention_weights

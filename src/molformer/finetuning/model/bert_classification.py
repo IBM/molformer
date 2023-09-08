@@ -112,7 +112,7 @@ class LightningModule(pl.LightningModule):
         )
 
     def get_loss(self, smiles_emb, measures):
-        z_pred = Net.forward(smiles_emb).squeeze()
+        z_pred = self.net.forward(smiles_emb).squeeze()
         measures = measures.long()
         #print('z_pred:', z_pred.shape)
         #print('measures:', measures.shape)
