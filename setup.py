@@ -17,7 +17,7 @@ setup(
     tests_require=["pytest"],
     install_requires=[
         "transformers==4.6.0",
-        "pytorch-lightning==1.1.5",
+        "lightning==2.0.8",
         "pytorch-fast-transformers==0.4.0",
         "datasets==1.6.2",
         "jupyterlab==3.4.0",

@@ -4,16 +4,18 @@ import numpy as np
 import random
 
 from molformer.model.pubchem_encoder import Encoder
-import pytorch_lightning as pl
-from pytorch_lightning.utilities import seed
+import lightning.pytorch as pl
+# from pytorch_lightning.utilities import seed
 import torch.nn.functional as F
 from functools import partial
+from lightning_fabric.utilities import seed
 
 from molformer.model.attention_modules.rotate_builder import (
     RotateEncoderBuilder as rotate_builder,
 )
 from fast_transformers.feature_maps import GeneralizedRandomFeatures
 from torch.optim import AdamW
+
 
 class LM_Layer(nn.Module):
     def __init__(self, n_embd, n_vocab):
@@ -60,9 +62,10 @@ class LightningModule(pl.LightningModule):
         self.drop = nn.Dropout(config.d_dropout)
         ## transformer
         self.blocks = builder.get()
-        self.lang_model = self.lm_layer(config.n_embd, n_vocab)
+        self.lang_model = LM_Layer(config.n_embd, n_vocab)
         self.train_config = config
         # if we are starting from scratch set seeds
+        
         if config.restart_path == "":
             seed.seed_everything(config.seed)
 
@@ -191,7 +194,7 @@ class LightningModule(pl.LightningModule):
         self.log("train_loss", loss, on_step=True)
         return {"loss": loss}
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self, outputs):
         avg_loss = torch.tensor([output["loss"] for output in outputs]).mean()
         loss = {"loss": avg_loss.item()}
         self.log("validation_loss", loss["loss"])
@@ -227,3 +230,7 @@ class LightningModule(pl.LightningModule):
                 loss += loss_tmp
         self.log("train_loss", loss, on_step=True)
         return {"loss": loss}
+
+
+
+    
