@@ -16,7 +16,7 @@ setup(
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     install_requires=[
-        "transformers==4.6.0",
+        "transformers==4.31.0",
         "lightning==2.0.8",
         "pytorch-fast-transformers==0.4.0",
         "datasets==1.6.2",
