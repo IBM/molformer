@@ -204,7 +204,7 @@ def get_bert(config, tokenizer):
     bert_model = TestBert(
         tokenizer.vocab, config.seed_path, rotate=config.rotate, device=config.device
     ).to(config.device)
-    tmp_model = torch.load(config.seed_path)["state_dict"]
+    tmp_model = torch.load(config.seed_path, map_location=torch.device(config.device))["state_dict"]
     bert_model.load_state_dict(tmp_model, strict=True)
     bert_model = bert_model.eval()
     return bert_model

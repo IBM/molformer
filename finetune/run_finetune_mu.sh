@@ -11,7 +11,7 @@ python finetune_pubchem_light.py \
         --max_epochs 500 \
         --num_feats 32 \
         --checkpoint_every 100 \
-        --seed_path '../data/checkpoints/linear_model.ckpt' \
+        --seed_path '../data/Pretrained MoLFormer/checkpoints/N-Step-Checkpoint_3_30000.ckpt' \
         --dataset_name qm9 \
         --data_root ../data/qm9 \
         --measure_name mu \

@@ -12,7 +12,7 @@ python finetune_pubchem_light.py \
         --num_feats 32 \
         --checkpoint_every 100 \
         --data_root ../data/qm9 \
-        --seed_path '../data/checkpoints/linear_model.ckpt' \
+        --seed_path '../data/Pretrained MoLFormer/checkpoints/N-Step-Checkpoint_3_30000.ckpt' \
         --dataset_name qm9 \
         --measure_name homo \
         --dims 768 768 768 1 \

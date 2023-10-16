@@ -28,7 +28,10 @@ An overview of the MoLFormer pipeline is seen in the image above. One can see th
 **This Code and Environment have been tested on Nvidia V100s**
 
 #### Pretrained Models and training logs
-If Training from scratch the resulting Pretrained models and associated training logs will be located in the /data directory in the following hierarchy.
+We are providing checkpoints of a MoLFormer model pre-trained on a dataset of ~100M molecules. This dataset combines 10% of Zinc and 10% of PubChem molecules used for MoLFormer-XL training. The accompanying pre-trained model shows competitive performance on classification and regression benchmarks from MoleculeNet. (see Extended data Tables 1-2 in [https://arxiv.org/abs/2106.09553](https://arxiv.org/abs/2106.09553)). These checkpoints are available at [https://ibm.box.com/v/MoLFormer-data](https://ibm.box.com/v/MoLFormer-data). _These are not the full MoLFormer-XL checkpoints._
+
+Extract `Pretrained MoLFormer.zip` containing the pretrained models and associated training logs to the `data/` directory.
+The hierarchy should look like the following:
 
 ```
 data/
@@ -43,18 +46,7 @@ data/
 │   │   └── N-Step-Checkpoint_3_30000.ckpt
 │   ├── events.out.tfevents.1643396916.cccxc543.3427421.0
 │   └── hparams.yaml
-├── checkpoints
-│   ├── linear_model.ckpt
-│   └── full_model.ckpt
-├── Full_Attention_Rotary_Training_Logs
-│   ├── events.out.tfevents.1628698179.cccxc544.604661.0
-│   └── hparams.yaml
-└── Linear_Rotary_Training_Logs
-    ├── events.out.tfevents.1620915522.cccxc406.63025.0
-    └── hparams.yaml
 ```
-
-We are providing checkpoints of a MoLFormer model pre-trained on a dataset of ~100M molecules. This dataset combines 10% of Zinc and 10% of PubChem molecules used for MoLFormer-XL training. The accompanying pre-trained model shows competitive performance on classification and regression benchmarks from MoleculeNet. (see Extended data Tables 1-2 in [https://arxiv.org/abs/2106.09553](https://arxiv.org/abs/2106.09553)). These checkpoints are available at [https://ibm.box.com/v/MoLFormer-data](https://ibm.box.com/v/MoLFormer-data)
 
 #### Replicating Conda Environment
 
@@ -64,7 +56,7 @@ Due to the use of apex.optimizers in our code, Apex must be compiled from source
 
 Datasets are available at [https://ibm.box.com/v/MoLFormer-data](https://ibm.box.com/v/MoLFormer-data)
 
-### PreTraining Datasets
+### Pretraining Datasets
 Due to the large nature of the combination of the PubChem and Zinc (over 1.1 billion molecules in total) datasets the code expects the data to be in a certain location and format.  The details of the of this processing is documented below for each individaul dataset.
 
 The code expects both the zinc15(ZINC) and pubchem datasets to be located in ```./data/``` directory of the training diretory.
@@ -107,7 +99,7 @@ data/
 ```
 
 ### Finetuning Datasets
-Just as with the pretraining data the code expects the finetuning datasets to be in the following hierarchy. These datasets were provided in the finetune_datasets.zip
+Just as with the pretraining data the code expects the finetuning datasets to be in the following hierarchy. These datasets were provided in the `finetune_datasets.zip`
 
 ```
 data/
@@ -163,7 +155,7 @@ MoLFormer is pre-trained on canonicalized SMILES of >1 B molecules from ZINC and
 
 During pre-processing, the compounds are filtered to keep a maximum length of 211 characters. A 100/0/0 split was used for training, validation, and test, i.e. we used all the data for training the model. As a confidence test we would evaluate the model at the end of each epoch on the following data (find the data we used for eval). Data canonicalization was performed using RDKit.
 
-The pre-training code provides an example of data processing and training of a model trained on a smaller pre-training dataset size, which requires 16 v100 GPUs. The remainder of this README contains an installation guide for this repo, descriptions and links to pre-training and fine-tuning datasets, configuration files and python codes for model pre-training and fine-tuning, and jupyter notebook for attention map visualization and analysis for a given molecule. A MoLFormer instance pre-trained on xxx data is also provided.
+The pre-training code provides an example of data processing and training of a model trained on a smaller pre-training dataset size, which requires 16 v100 GPUs.
 
 To train a model run:
 
@@ -186,10 +178,10 @@ Download the `Pretrained MoLFormer.zip` and `finetune_datasets.zip` and extract 
 ## Attention Visualization Analysis
 
 The `notebooks` directory provide attention visualization for two setup with Rotary Embeddings:
-- **Linear attention** (./notebooks/full_attention_rotary/attention_analysis_rotary_full.ipynb)
-- **Full attention** (./notebooks/linear_attention_rotary/attention_analysis_rotary_linear.ipynb)
+- **Full attention** (./notebooks/full_attention_rotary/attention_analysis_rotary_full.ipynb)
+- **Linear attention** (./notebooks/linear_attention_rotary/attention_analysis_rotary_linear.ipynb)
 
-The checkpoints required for the above models are to be placed in `./data/checkpoints`
+Note: for full attention, you will need to train a new model -- the pretrained model provided uses linear attention. Also, the plots may be slightly different from the paper when using the provided pretrained model.
 
 ## Citations
 ```

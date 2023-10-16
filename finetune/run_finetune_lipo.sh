@@ -10,7 +10,7 @@ python finetune_pubchem_light.py \
         --num_workers 8\
         --max_epochs 500 \
         --num_feats 32 \
-        --seed_path '../data/checkpoints/linear_model.ckpt' \
+        --seed_path '../data/Pretrained MoLFormer/checkpoints/N-Step-Checkpoint_3_30000.ckpt' \
         --dataset_name lipo \
         --data_root ../data/lipo \
         --measure_name y \
